@@ -1,4 +1,11 @@
 import discord
+import json
+
+#JSON öffnen
+
+with open('config.json') as config_file:
+    einstellungen = json.load(config_file)
+
 
 class MyClient(discord.Client):
     async def on_ready(self):
@@ -7,4 +14,4 @@ class MyClient(discord.Client):
         print("Nachricht empfangen von " + str(message.author) + ": " + str(message.content))
 
 client = MyClient()
-client.run('NzgwNTM1OTIyMTUxNzg0NDY4.X7wguQ.dpfiFk-WlTVpw8nqfqyvma_VglQ')
+client.run(einstellungen['token'])
