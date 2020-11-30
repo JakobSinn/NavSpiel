@@ -75,6 +75,7 @@ class MyClient(discord.Client):
                 if finde(message.author) == "nichtvorhanden":
                     print("[SPIEL] Der Spieler hat noch kein Spiel. Daher wird ein neues erstellt.")    
                     laufende_spiele.append( Spiel(message.author, 20, 20, 1))
+                    await message.channel.send("Spiel gestartet. Viel Glück!")
                     print("[SPIEL] Neues Spiel erstellt für " + str(message.author) + " um " + zeit())
                     print("[SPIEL] Index: " + str(finde(message.author)) + " ; Zielpunkt liegt bei: (" + str(laufende_spiele[finde(message.author)].x) + "|" + str(laufende_spiele[finde(message.author)].y) + ").") 
                 else:
