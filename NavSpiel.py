@@ -10,20 +10,29 @@ with open('config.json') as config_file:
     einstellungen = json.load(config_file)
     
 def zeit():
+    #Diese Funktion gibt einfach nur die Zeit als string zurück.
     return str(datetime.datetime.now())
 
 def finde(name):
     #In dieser Funktion soll nach einem Spiel gesucht werden, damit der Bot
     #einen Befehl dem richtigen laufendem spiel zuordnen kann.
-    index = 0
+    #name bezeichnet dabei den Namen des SPielers, angegeben durch message.sender
+    index = 0 # die Indexinteger, die nur für das return benutzt wird, wird initialisiert
     for i in laufende_spiele:
+        #Als Methode werden hier einfach nur die .spieler-Felder jedes Objekts in laufende_spiele
+        #mit dem angegebenen Namen verglichen
         if i.spieler == name:
+            #Einfach die Indexnummer
             return index
         else:
-            index += 1 #index wird angehoben und nächster listenplaytz durchsucht
-    return "nichtvorhanden"
+            index += 1 #index wird angehoben und nächster listenplatz durchsucht
+    #Dieser teil wird nur erreicht, wenn in der for-schleife nichts gefunden wurde
+    #Daher also dieser String
+    return "nichtvorhanden" 
 
 def distanz(index, x, y):
+    #In dieser Funktion soll der auszugebende Abstand zwischen einem Spielzug
+    #(Variablen x und y) und den Daten eines Spiels (mit dem Index "index")
     if index == "nichtvorhanden":
         print("[ERROR] Ein Move für ein nicht existentes Spiel wurde an distanz() gereicht. Zeit: " + zeit())
     xdiff = int(x) - laufende_spiele[index].x
@@ -37,6 +46,9 @@ def distanz(index, x, y):
     return round(diff + verzerrer)
 
 def gewonnen(index, x, y):
+    #Diese Funktion schaut, ob der SPieler mit seinem move (x, y) das Spiel (index) gewonnen hat.
+    #Für weitere verarbeitung wird ein boolean ausgegeben, aber die Funktion schreibt auch selbst
+    #schon in den Log.
     if index == "nichtvorhanden":
         print("[ERROR] Ein Move für ein nicht existentes Spiel wurde an gewonnen() gereicht. Zeit: " + zeit())
     if (int(x) - laufende_spiele[index].x == 0) and (int(y) - laufende_spiele[index].y == 0):
@@ -44,14 +56,18 @@ def gewonnen(index, x, y):
         return True
     else:
         return False
+    
+#Dier String wird als Antwort auf den "help"-Befehl ausgegeben.
 hilfetext = "Wie benutzt man diesen Bot? \n \nDas Spiel funktioniert wie folgt: ein Zielpunkt in einem zweidimensionalen Koordinatensystem wird zufällig bestimmt. Jetzt kann der Spieler Punkte angeben, deren Entfernung zum Ziel angegeben wird \(+/- eine Einheit\). Das Spiel ist gewonnen, wenn der Spieler genau auf den Punkt setzt. \n \n Befehle \(immer mit dem Präfix \"" + einstellungen["prefix"] + "\"\): \n \n\"start\": beginnt ein neues Spiel. Die Feldgröße ist 20 mal 20. \n\"quit\": beendet ein gerade laufendes Spiel.\n\"move\": einen Punkt angeben. Syntax: " + einstellungen["prefix"] + "move \[xKoordinate\] \[yKoordinate\].\n\"check\": anzeigen lassen, ob du ein Spiel am laufen hast.\n\"help\": diesen Text anzeigen lassen.\n\nViel Spaß!"
 
 
 class Spiel:
     def __init__(self, spieler, xmax, ymax, verzerrung):
+        #Hier wird jedes neue erschffene Spiel initialisiert
         self.spieler = spieler
         self.xmax = xmax
         self.ymax = ymax
+        #Hier wird das Ziel des Spiels festgelegt
         self.x = random.randint(0, xmax)
         self.y = random.randint(0, ymax)
         self.versuche = 0
@@ -61,14 +77,21 @@ laufende_spiele = []
 
 class MyClient(discord.Client):
     async def on_ready(self):
+        #Wird ausgeführt, wenn der Bot verbunden ist.
         print("[INIT]  Verbunden, mit dem Namen " + str(self.user))
         print("[INIT]  Verbunden ab " + zeit())
         random.seed()
+        #Der zufallsgenerator wird initialisiert
         print("[INIT]  Zufallsgenerator erfolgreich initialisiert.")
     async def on_message(self, message):
+        #Wenn der bot in einem Kanal eine Nachricht sieht oder eine DM bekommt
         if message.author == client.user:
+            #Wenn der Bot die nachricht selbst geschriben hat
+            #message.author ist immer der Name des Autors der Nachricht, egal in welchem kanal
             print("[SYS]   Der Bot hat eine Nachricht geschrieben um " + zeit() + ".")
             return
+            #Damit der Bot nicht seine eigenen Nachrichten interpretiert, wird hier aus der
+            #gesamten on_message()-Funktion gesprungen
         if message.content.startswith(einstellungen["prefix"]):
             print("[SYS]   \"" + str(message.content) + "\" ist ein Befehl, eingegangen um " + zeit() + " von " + str(message.author) + ".")
             if message.content == (einstellungen["prefix"] + "start"):
@@ -82,6 +105,8 @@ class MyClient(discord.Client):
                     print("[SPIEL] Der Spieler hat schon ein Spiel am laufen.")
                     await message.channel.send("Es konnte kein Spiel erstellt werden, da unter Deinem Namen schon eins erstellt wurde. Beende ein Spiel mit " + einstellungen["prefix"] + "quit.")
             elif message.content.startswith(einstellungen["prefix"] + "move"):
+                #Dieser Befehl ist komplizierter: nach dem Anfang der Nachricht müssen noch weitere
+                #teile der Message interpretiert werden
                 spielzug = message.content.split()
                 diff = distanz(finde(message.author), spielzug[1], spielzug[2])
                 laufende_spiele[finde(message.author)].versuche += 1
@@ -118,6 +143,7 @@ class MyClient(discord.Client):
                 print("[SYS]   Diese Nachricht konnte vom Bot nicht interpretiert werden.")
                 await message.channel.send("Das habe ich nicht verstanden. Benutze \"" + str(einstellungen["prefix"]) + "help\", um eine Hilfeseite zu sehen.")
         
-        
+#Initialisierung
 client = MyClient()
+#Der Token wird aus der json-Datei übernommen
 client.run(einstellungen['token'])
