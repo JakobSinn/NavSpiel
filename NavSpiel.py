@@ -3,6 +3,7 @@ import json
 import datetime
 import random
 import math
+import sys
 
 #JSON öffnen
 
@@ -62,9 +63,10 @@ hilfetext = "Wie benutzt man diesen Bot? \n \nDas Spiel funktioniert wie folgt: 
 
 
 class Spiel:
-    def __init__(self, spieler, xmax, ymax, verzerrung):
-        #Hier wird jedes neue erschffene Spiel initialisiert
+    def __init__(self, spieler, spielerid, xmax, ymax, verzerrung):
+        #Hier wird jedes neue erschaffene Spiel initialisiert
         self.spieler = spieler
+        self.spielerid = spielerid
         self.xmax = xmax
         self.ymax = ymax
         #Hier wird das Ziel des Spiels festgelegt
@@ -73,6 +75,7 @@ class Spiel:
         self.versuche = 0
         self.verzerrung = verzerrung
         
+#Initiierung des Arrays, welches die Spiele halten soll
 laufende_spiele = []
 
 class MyClient(discord.Client):
@@ -80,9 +83,13 @@ class MyClient(discord.Client):
         #Wird ausgeführt, wenn der Bot verbunden ist.
         print("[INIT]  Verbunden, mit dem Namen " + str(self.user))
         print("[INIT]  Verbunden ab " + zeit())
-        random.seed()
+        #Bot-Status auf Online setzen
+        await client.change_presence(status = discord.Status.online)
+        print("[INIT]  Status gesetzt auf online.")
         #Der zufallsgenerator wird initialisiert
+        random.seed()
         print("[INIT]  Zufallsgenerator erfolgreich initialisiert.")
+    
     async def on_message(self, message):
         #Wenn der bot in einem Kanal eine Nachricht sieht oder eine DM bekommt
         if message.author == client.user:
@@ -97,7 +104,7 @@ class MyClient(discord.Client):
             if message.content == (einstellungen["prefix"] + "start"):
                 if finde(message.author) == "nichtvorhanden":
                     print("[SPIEL] Der Spieler hat noch kein Spiel. Daher wird ein neues erstellt.")    
-                    laufende_spiele.append( Spiel(message.author, 20, 20, 1))
+                    laufende_spiele.append( Spiel(message.author, message.author.id, 20, 20, 1))
                     await message.channel.send("Spiel gestartet. Viel Glück!")
                     print("[SPIEL] Neues Spiel erstellt für " + str(message.author) + " um " + zeit())
                     print("[SPIEL] Index: " + str(finde(message.author)) + " ; Zielpunkt liegt bei: (" + str(laufende_spiele[finde(message.author)].x) + "|" + str(laufende_spiele[finde(message.author)].y) + ").") 
@@ -139,10 +146,32 @@ class MyClient(discord.Client):
                 else:
                     print("[CHECK] " + str(message.author) + " hat ein Spiel.")
                     await message.channel.send("Du hast gerade ein Spiel, und hast bereits " + str(laufende_spiele[finde(message.author)].versuche) + " Versuche gemacht.")
+            elif message.content.startswith(einstellungen["prefix"] + "shutdown"):
+                #Der Benutzer möchte das Programm beenden
+                print("[EXIT]  " + str(message.author) + " möchte den Bot schliessen.")
+                #Passwort-Check
+                if message.content.split()[1] == einstellungen["passwort"]:
+                    print("[EXIT]  Hat das korrekte Passwort eingegeben. Das Spiel wird geschlossen...")
+                    await message.channel.send("Befehl Akzeptiert. Exit-Verfahren wird eingeleitet...")
+                    print("[EXIT]  Das Programm wird geschlossen. Exit-Verfahren eingeleitet um " + zeit())
+                    #Jeder Spieler mit einem laufenden Spiel wird informiert, dass sein Spiel endet
+                    for i in laufende_spiele:
+                        await client.get_user(i.spielerid).send("Dein Spiel wurde beendet, da das Botprogramm geschlossen wurde. Wenn ich wieder zur Verfügung stehe, setze ich meinen Status auf \"online\" und reagiere wieder auf Nachrichten von Dir. Bis dann!")
+                        print("[EXIT]  Der Spieler " + str(i.spieler) + " wurde über den Exit informiert.")
+                    #Status des Bots setzen
+                    print("[EXIT]  Alle Spieler wurden Informiert. Neuen Status setzten...")
+                    await client.change_presence(status = discord.Status.offline)
+                    print("[EXIT]  Der Status des Bots wurde auf offline gesetzt. Nachricht an Auslöser...")
+                    await message.channel.send("Exit-Verfahren beendet. Programm wird geschlossen. Tschüss!")
+                    print("[EXIT]  Exit-Verfahren beendet um " + zeit() + ". Tschüss!")
+                    sys.exit(0)
+
+                else:
+                    print("[EXIT]  Der Benutzer hat ein falsches Passwort angegeben.")
+                    await message.channel.send("Falsches Passwort.")
             else:
-                print("[SYS]   Diese Nachricht konnte vom Bot nicht interpretiert werden.")
-                await message.channel.send("Das habe ich nicht verstanden. Benutze \"" + str(einstellungen["prefix"]) + "help\", um eine Hilfeseite zu sehen.")
-        
+                print("[SYS]   Der Befehl konnte nicht verstanden werden. Rückmeldung wird an Benutzer geschickt...")
+                await message.channel.send("Das habe ich nicht verstanden. Benutze \"" + str(einstellungen["prefix"]) + "help\", um eine Hilfeseite anzeigen zu lassen.")        
 #Initialisierung
 client = MyClient()
 #Der Token wird aus der json-Datei übernommen
